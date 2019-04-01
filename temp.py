@@ -6,7 +6,7 @@ from machine import Pin
 from dht import DHT22
 import time, utime
 #Cada 10 segundos vamos a actualizar temp y humedad.
-
+print("AM2302")
 class tempController(object):
     def __init__(self, pinRef, timeUpdate,filename):
         self.dht=DHT22(Pin(pinRef))
@@ -55,6 +55,7 @@ class tempController(object):
         while self.retry < 45:
             try:
                 self.dht.measure()
+                print("success")
                 break
             except:
                     
@@ -67,18 +68,13 @@ class tempController(object):
             now = utime.ticks_ms()
             #damos formato a datos...
             self.temp="%3.1f " % self.dht.temperature()
-            self.humid="%3.1f %% " % self.dht.humidity()
+            self.humid="%3.1f " % self.dht.humidity()
             
             #append: add line at EOF
             f=open(value, 'a')
             #CSV formatting
             f.write(self.temp + ',' + self.humid +'\n')
             lineClose = lineClose +1
-            time.sleep(5)
-
             if lineClose>=2:
                 f.close()
                 lineClose=0
-
-        
-        
