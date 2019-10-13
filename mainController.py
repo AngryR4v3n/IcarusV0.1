@@ -8,6 +8,7 @@ import time
 #control de temperatura..
 from gpsReader import *
 from temp import *
+from co2 import *
 
 #Forced GLOBAL VARIABLES...
 #mqtt
@@ -31,13 +32,13 @@ except Exception as e:
 class mainController(object):
     
     def __init__(self,network,pw):
-        self.co2=0
         self.net=network
         self.pw=pw
         self.feedTemp=''
         self.feedHum=''
         self.feedLat=''
         self.feedLong=''
+        self.feedCo2=''
         self.user=b'molinajimenez'
         
 
@@ -68,10 +69,11 @@ class mainController(object):
     IN: PARAMS para conexion
     OUT: 0-> Conexion exitosa ; -1-> Conexion fallida por cualquier factor..
     '''
-    def dataCollection(self, tempPin,tempRefresh,tempFile,gpsPinTx,gpsPinRx,timeGPS,gpsFile,baudGPS):
+    def dataCollection(self, tempPin,tempRefresh,tempFile,gpsPinTx,gpsPinRx,timeGPS,gpsFile,baudGPS,co2Pin,co2File):
 
         tempControll=tempController(tempPin,tempRefresh,tempFile)
         gpsControll=gpsController(gpsPinTx,gpsPinRx,timeGPS,gpsFile,baudGPS)
+        co2Controll=mqController(co2Pin,co2File,1)
         #asignamos feed
         self.feedTemp=bytes('{:s}/feeds/{:s}'.format(self.user, b'temp_data'), 'utf-8')
         self.feedHum=bytes('{:s}/feeds/{:s}'.format(self.user, b'humid_data'), 'utf-8')
@@ -79,18 +81,23 @@ class mainController(object):
         self.feedLat=bytes('{:s}/feeds/{:s}'.format(self.user, b'lat_data'), 'utf-8')
         self.feedLong=bytes('{:s}/feeds/{:s}'.format(self.user, b'long_data'), 'utf-8')
         
+        self.feedCo2=bytes('{:s}/feeds/{:s}'.format(self.user, b'co2_data'), 'utf-8')
         x=True
         #vamos a recolectar toda la informacion posible..
         while x: 
             
             tempControll.recordTemp(tempFile)
             gpsControll.posUpdate(gpsFile)
-            
+            co2Controll.recordGas(tempControll.temp,tempControll.humid)
             #publicamos
             client.publish(self.feedTemp,bytes(str(tempControll.temp), 'utf-8'), qos=0)
+            time.sleep(7)
             client.publish(self.feedHum,bytes(str(tempControll.humid), 'utf-8'), qos=0)
+            time.sleep(7)
 
-            time.sleep(5)
+            client.publish(self.feedCo2,bytes(str(co2Controll.co2), 'utf-8'), qos=0)
+
+            time.sleep(7)
             
             
             if(gpsControll.lat=='0' or gpsControll.longitude=='0'):
@@ -108,6 +115,6 @@ class mainController(object):
             
 
 
-control=mainController("internet","molinajimenez")
+control=mainController("UVG 2018","")
 control.connect()
-control.dataCollection(14,10,"logTemp.txt",32,33,100,'logGps.txt',9600)
+control.dataCollection(14,10,"logTemp.txt",32,33,100,'logGps.txt',9600,39,'logCo2.txt')
